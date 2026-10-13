@@ -1,0 +1,7 @@
+# Obsidian per-device/session state — churns constantly, not useful to sync
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+
+# OS cruft
+.DS_Store
