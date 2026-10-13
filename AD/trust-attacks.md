@@ -17,11 +17,11 @@ Intra-forest (child→parent) and cross-forest trust abuse. Related: [kerberos-t
 ```mermaid
 flowchart TD
     A["Get-ADTrust / Get-DomainTrust / Get-DomainTrustMapping\n(map reachable trusts)"] --> B{Trust direction?}
-    B -->|Child → Parent (intra-forest)| C["DCSync child domain krbtgt\n(lsadump::dcsync /user:DEV\\krbtgt)"]
+    B -->|"Child to Parent (intra-forest)"| C["DCSync child domain krbtgt\n(lsadump::dcsync /user:DEV\\krbtgt)"]
     C --> D["Resolve parent's Enterprise Admins SID\n(Get-ADGroup -Server parent)"]
     D --> E["Forge golden ticket with ExtraSids = parent EA SID\nticketer.py -extra-sid / Rubeus golden /sids"]
     E --> F["Authenticate to parent domain as Enterprise Admin\n(raiseChild.py automates this)"]
-    B -->|Cross-forest trust| G["Enumerate TrustAttributes (SID filtering / selective auth?)"]
+    B -->|"Cross-forest trust"| G["Enumerate TrustAttributes (SID filtering / selective auth?)"]
     G --> H["Kerberoast across the trust (Rubeus /domain:logistics.ad)"]
     G --> I["Check for SIDHistory abuse opportunities"]
     G --> J["Pivot via SQL Server links (Get-SQLServerLink / mssqlclient.py)"]
