@@ -4,6 +4,26 @@
 
 Swiss-army knife for SMB/WinRM/MSSQL/LDAP/SSH/RDP/FTP. Maintained successor to CrackMapExec (CME), which was archived in late 2023 — `nxc`'s flags are a near-exact match to the old `cme` syntax. Related: [enumeration](enumeration.md) · [ntlm-relay](ntlm-relay.md) · [kerberoasting](kerberoasting.md) · [password-attacks](../Passwords/password-attacks.md) · [tool-index](../Tools/tool-index.md) for install
 
+## Contents
+- [Connect / Authenticate](#connect--authenticate)
+- [SMB Enumeration](#smb-enumeration)
+- [LDAP Enumeration](#ldap-enumeration)
+- [Credentialed Modules](#credentialed-modules)
+- [Command Execution](#command-execution)
+- [MSSQL](#mssql)
+- [File Ops / Spidering](#file-ops--spidering)
+- [Export](#export)
+
+## Protocol Support
+
+| Protocol | Flag | Typical use |
+|---|---|---|
+| SMB | `nxc smb <target>` | Auth, shares, users, RID brute, modules (gpp, spider_plus) |
+| WinRM | `nxc winrm <target>` | Auth check, remote command execution |
+| MSSQL | `nxc mssql <target>` | Auth check, SQL queries, xp_cmdshell, privesc module |
+| LDAP | `nxc ldap <target>` | Delegation/gMSA/PASSWD_NOTREQD enumeration, domain SID |
+| SSH / RDP / FTP | `nxc ssh\|rdp\|ftp <target>` | Credential validation across non-Windows-native protocols |
+
 ## Connect / Authenticate
 ```bash
 nxc <protocol> <target>

@@ -144,8 +144,6 @@ Terse, copy-pasteable commands with one-line descriptions — no filler. Built f
 
 <div align="center">
 
-See **[quality-report.md](quality-report.md)** for source provenance, OCR quality notes, and every correction made along the way.
-
 *For authorized security testing, CTF competitions, and defensive research only.*
 
 </div>

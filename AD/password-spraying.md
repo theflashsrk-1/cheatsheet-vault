@@ -4,6 +4,15 @@
 
 Related: [credentialed-enumeration](credentialed-enumeration.md) · [netexec](NetExec.md) · [password-attacks](../Passwords/password-attacks.md) · [traffic-analysis](../Network/traffic-analysis.md) · [ntlm-relay](ntlm-relay.md)
 
+## Contents
+- [Enumerate Password Policy](#enumerate-password-policy)
+- [LLMNR / NBT-NS / MDNS Poisoning](#llmnr--nbt-ns--mdns-poisoning)
+- [Password Spraying](#password-spraying)
+- [Username Generation](#username-generation)
+
+> [!WARNING]
+> Always enumerate the lockout threshold first and spray one password per user per round (never brute-force a single user) — one bad spray can lock out the entire user base. Pass-the-hash sprays against a *subnet* (one attempt/host, not per-user) sidestep account lockout entirely since each host only sees a single attempt.
+
 ## Enumerate Password Policy
 ```bash
 nxc smb 172.16.5.5 -u avazquez -p Password123 --pass-pol

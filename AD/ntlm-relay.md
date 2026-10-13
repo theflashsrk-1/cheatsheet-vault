@@ -4,6 +4,40 @@
 
 Poison, coerce, and relay NTLM authentication (SMB/LDAP/MSSQL/HTTP/AD CS). Related: [dacl-attacks](dacl-attacks.md) · [kerberos-delegation](kerberos-delegation.md) · [netexec](NetExec.md) · [traffic-analysis](../Network/traffic-analysis.md)
 
+## Contents
+- [Enumeration (find relay targets)](#enumeration-find-relay-targets)
+- [Farming Hashes](#farming-hashes)
+- [ntlmrelayx](#ntlmrelayx)
+- [Coerce Authentication](#coerce-authentication)
+- [Shadow Credentials via Relay](#shadow-credentials-via-relay)
+- [AD CS Relay (ESC8 / ESC11)](#ad-cs-relay-esc8--esc11)
+
+## Relay Sequence
+
+```mermaid
+sequenceDiagram
+    participant Attacker
+    participant Victim as Victim/Target (SMB signing off, or coerced)
+    participant Relay as ntlmrelayx listener
+    participant Service as Relay destination (LDAP/HTTP/MSSQL/SMB)
+
+    Attacker->>Relay: Start ntlmrelayx.py (-t / -tf target list)
+    Attacker->>Victim: Coerce auth (PetitPotam / PrinterBug / DFSCoerce) or wait for LLMNR/NBT-NS poison hit
+    Victim->>Relay: NTLM authentication attempt
+    Relay->>Service: Forward (relay) the NTLM negotiation
+    Service-->>Relay: Authenticated session as Victim
+    Relay-->>Attacker: Action executed as Victim (dump, ACL write, cert issuance, command exec)
+```
+
+## Coercion Method Comparison
+
+| Method | Protocol | Tool |
+|---|---|---|
+| PrinterBug | MS-RPRN | `printerbug.py` |
+| PetitPotam | MS-EFSR | `PetitPotam.py` |
+| DFSCoerce | MS-DFSNM | `dfscoerce.py` |
+| Coercer | Multi-protocol | `Coercer coerce` |
+
 ## Enumeration (find relay targets)
 ```bash
 python3 Responder.py -I ens192 -A
@@ -138,4 +172,4 @@ ESC11: relay to the RPC enrollment endpoint.
 ```bash
 certipy auth -pfx ws01.pfx -dc-ip 172.16.117.3
 ```
-Authenticate with an obtained certificate.
+Authenticate with an obtained certificate. See [adcs](adcs.md) for the full ESC1–ESC13 chain.

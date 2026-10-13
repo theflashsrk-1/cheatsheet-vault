@@ -4,6 +4,33 @@
 
 Request/crack service (TGS-REP) and pre-auth-disabled (AS-REP) hashes. Related: [kerberos-tickets](kerberos-tickets.md) · [kerberos-delegation](kerberos-delegation.md) · [enumeration](enumeration.md) · [NetExec](NetExec.md) · [hashcat](../Passwords/hashcat.md)
 
+## Contents
+- [Kerberoasting (SPN accounts)](#kerberoasting-spn-accounts)
+- [AS-REP Roasting (DONT_REQ_PREAUTH)](#as-rep-roasting-dont_req_preauth)
+- [Via CrackMapExec (LDAP)](#via-crackmapexec-ldap)
+- [Impacket GetUserSPNs (full workflow)](#impacket-getuserspns-full-workflow)
+- [Windows: Rubeus](#windows-rubeus)
+- [Windows: PowerView / setspn (manual)](#windows-powerview--setspn-manual)
+- [User Enumeration / Spraying (Kerberos)](#user-enumeration--spraying-kerberos)
+
+## Roast Flow
+
+```mermaid
+flowchart TD
+    subgraph Kerberoasting
+    A1["Find SPN accounts\nInvoke-Kerberoast / GetUserSPNs.py / Get-DomainUser -SPN"] --> A2["Request TGS-REP for the SPN"]
+    A2 --> A3["Extract etype 23 hash"]
+    A3 --> A4["hashcat -m 13100"]
+    end
+    subgraph "AS-REP Roasting"
+    B1["Find accounts with DONT_REQ_PREAUTH\nGet-DomainUser -UACFilter / GetNPUsers.py"] --> B2["Request AS-REP (no pre-auth needed)"]
+    B2 --> B3["Extract etype 23 hash"]
+    B3 --> B4["hashcat -m 18200"]
+    end
+    A4 --> C["Cracked plaintext password"]
+    B4 --> C
+```
+
 ## Kerberoasting (SPN accounts)
 ```powershell
 Invoke-Kerberoast

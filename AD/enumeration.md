@@ -4,6 +4,12 @@
 
 Related: [kerberoasting](kerberoasting.md) · [dacl-attacks](dacl-attacks.md) · [trust-attacks](trust-attacks.md) · [netexec](NetExec.md) · [nmap](../Network/nmap.md)
 
+## Contents
+- [RSAT / Module Setup](#rsat--module-setup)
+- [LDAP Queries (ActiveDirectory module)](#ldap-queries-activedirectory-module)
+- [PowerView / SharpView](#powerview--sharpview)
+- [BloodHound Collection](#bloodhound-collection)
+
 ## RSAT / Module Setup
 ```powershell
 Get-WindowsCapability -Name RSAT* -Online | Select-Object -Property Name, State
@@ -82,6 +88,13 @@ get-ciminstance win32_product | fl
 Query installed software.
 
 ## PowerView / SharpView
+
+> [!TIP]
+> Most of these are available in both the PowerView (`Get-Domain*`) and SharpView (`.\SharpView.exe`) forms — pick whichever fits your foothold (reflective PS module vs. a dropped binary).
+
+<details>
+<summary>Full PowerView / SharpView command reference (20+ entries)</summary>
+
 ```powershell
 Get-DomainPolicy
 ```
@@ -211,6 +224,8 @@ Report all GPOs applied to a host.
 Get-DomainTrustMapping
 ```
 Enumerate trusts for our domain / reachable domains. See [trust-attacks](trust-attacks.md).
+
+</details>
 
 ## BloodHound Collection
 ```powershell

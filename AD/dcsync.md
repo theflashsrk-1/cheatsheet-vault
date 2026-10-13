@@ -4,6 +4,21 @@
 
 Abuse replication rights (DS-Replication-Get-Changes) to pull NTDS hashes. Related: [dacl-attacks](dacl-attacks.md) · [kerberos-tickets](kerberos-tickets.md) · [exploits](exploits.md)
 
+## DCSync Flow
+
+```mermaid
+sequenceDiagram
+    participant Attacker
+    participant DC as Domain Controller
+    Attacker->>DC: Check DS-Replication-Get-Changes[-All] rights (Get-ObjectAcl)
+    DC-->>Attacker: ACE confirms replication rights held
+    Attacker->>DC: DRSUAPI replication request (secretsdump.py / mimikatz lsadump::dcsync)
+    DC-->>Attacker: NTDS secrets (NTLM hashes, Kerberos keys)
+```
+
+> [!WARNING]
+> DCSync impersonates a Domain Controller to pull replication data — it requires `DS-Replication-Get-Changes` and `DS-Replication-Get-Changes-All` rights (held by Domain Admins/Enterprise Admins by default, or granted via [dacl-attacks](dacl-attacks.md)). It is a well-known, heavily monitored technique (Event ID 4662 with the replication GUIDs) — treat it as a loud, late-stage action.
+
 ## Check Replication Rights
 ```powershell
 $sid = "S-1-5-21-3842939050-3880317879-2865463114-1164"

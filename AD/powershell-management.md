@@ -4,6 +4,17 @@
 
 Admin cmdlets for creating/modifying AD objects (useful post-compromise for persistence). Related: [enumeration](enumeration.md) · [fundamentals](../Windows/fundamentals.md)
 
+## Contents
+- [Connectivity](#connectivity)
+- [Discovery](#discovery)
+- [Users](#users)
+- [Groups / OUs](#groups--ous)
+- [GPOs](#gpos)
+- [Computers](#computers)
+
+> [!NOTE]
+> These cmdlets require AD admin rights (Domain Admin or delegated OU control) and modify real directory objects — creating users/groups/GPOs or resetting passwords are all persistence-grade, auditable actions (new-object and password-reset events are commonly alerted on).
+
 ## Connectivity
 ```powershell
 xfreerdp /v:<IP> /u:<User> /p:<Password>

